@@ -10,5 +10,7 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 [Bb]uild
+[Oo]ut
 cmake-build*
 .idea
+.vs
