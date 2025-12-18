@@ -36,8 +36,6 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ROM_FILES})
 
 add_library(${TARGET_NAME} INTERFACE ${ROM_FILES})
 
-message(STATUS "Added ${TARGET_NAME} resource target with files: ${ROM_FILES}")
-
 ##############
 # Executable #
 ##############
@@ -45,13 +43,19 @@ message(STATUS "Added ${TARGET_NAME} resource target with files: ${ROM_FILES}")
 set(CMAKE_FOLDER ${BASE_FOLDER})
 
 # Set compile options
-if (MSVC)
-    add_compile_options(/W4 /WX)
-    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(/Zc:preprocessor /Zc:u8EscapeEncoding)
-    endif()
+if (MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(/W4 /WX /Zc:preprocessor /Zc:u8EscapeEncoding)
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+    set(IGNORED_WARNINGS
+            -Wno-unused-macros
+            -Wno-reserved-macro-identifier
+            -Wno-c++98-compat -Wno-c++98-compat-pedantic
+            -Wno-covered-switch-default
+            -Wno-gnu-zero-variadic-macro-arguments
+            -Wno-unsafe-buffer-usage
+    )
+
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror ${IGNORED_WARNINGS})
 endif()
 
 # Add source files
