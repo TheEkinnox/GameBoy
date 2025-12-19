@@ -3,6 +3,7 @@
 #include <fstream>
 
 // clang-format off
+#ifndef BUILD_TESTING
 static constexpr byte DMG_BOOT[] = {
     0x31, 0xfe, 0xff, 0xaf, 0x21, 0xff, 0x9f, 0x32, 0xcb, 0x7c, 0x20, 0xfb, 0x21, 0x26, 0xff, 0x0e, 0x11, 0x3e, 0x80, 0x32, 0xe2, 0x0c, 0x3e, 0xf3,
     0xe2, 0x32, 0x3e, 0x77, 0x77, 0x3e, 0xfc, 0xe0, 0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1a, 0xcd, 0x95, 0x00, 0xcd, 0x96, 0x00, 0x13, 0x7b,
@@ -16,6 +17,7 @@ static constexpr byte DMG_BOOT[] = {
     0x3c, 0x42, 0xb9, 0xa5, 0xb9, 0xa5, 0x42, 0x3c, 0x21, 0x04, 0x01, 0x11, 0xa8, 0x00, 0x1a, 0x13, 0xbe, 0x20, 0xfe, 0x23, 0x7d, 0xfe, 0x34, 0x20,
     0xf5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xfb, 0x86, 0x20, 0xfe, 0x3e, 0x01, 0xe0, 0x50
 };
+#endif
 // clang-format on
 
 void MMU::reset()
@@ -34,11 +36,13 @@ byte MMU::readByte(const uint16_t addr)
     // TODO: MMU::readByte
     ON_SCOPE_EXIT([this] { addCycle(); });
 
+#ifndef BUILD_TESTING // Unit tests assume no boot-rom and a non-mapped 64KB block of memory
     if (ADDRESSES.unusable.contains(addr))
         return 0xff;
 
     if (isBootMode() && addr < sizeof(DMG_BOOT))
         return DMG_BOOT[addr];
+#endif
 
     return m_memory[addr];
 }
@@ -48,6 +52,7 @@ bool MMU::writeByte(const uint16_t addr, const byte data)
     // TODO: MMU::writeByte
     ON_SCOPE_EXIT([this] { addCycle(); });
 
+#ifndef BUILD_TESTING // Unit tests assume no boot-rom and a non-mapped 64KB block of memory
     if (isBootMode() && addr < sizeof(DMG_BOOT))
         return false;
 
@@ -59,6 +64,7 @@ bool MMU::writeByte(const uint16_t addr, const byte data)
 
     if (ADDRESSES.wram.contains(addr) && addr < ADDRESSES.wram.start + ADDRESSES.echo.size())
         m_memory[addr + (ADDRESSES.echo.start - ADDRESSES.wram.start)] = data;
+#endif
 
     m_memory[addr] = data;
     return true;

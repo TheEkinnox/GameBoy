@@ -18,6 +18,23 @@ else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -D_DEBUG")
 endif()
 
+#########
+# Tests #
+#########
+option(BUILD_TESTING "" OFF)
+if (${BUILD_TESTING})
+    enable_testing()
+
+    # set target
+    set(TARGET_NAME Tests)
+    set(TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+    file(GLOB_RECURSE TEST_FILES ${TESTS_DIR}/*)
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${TEST_FILES})
+
+    add_library(${TARGET_NAME} INTERFACE ${TEST_FILES})
+endif()
+
 ################
 # Dependencies #
 ################
@@ -85,4 +102,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE raylib imgui rlimgui)
 
 if (CMAKE_GENERATOR MATCHES "Visual Studio")
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+endif()
+
+if (${BUILD_TESTING})
+    target_include_directories(${PROJECT_NAME} PRIVATE GTest::gtest_main)
+    target_link_libraries(${PROJECT_NAME} PRIVATE GTest::gtest_main)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_TESTING)
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink ${TESTS_DIR} $<TARGET_FILE_DIR:${PROJECT_NAME}>/tests
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(${PROJECT_NAME})
 endif()

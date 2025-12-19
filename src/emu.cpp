@@ -2,6 +2,10 @@
 
 #include "opcodes.h"
 
+#ifdef BUILD_TESTING
+#include <gtest/gtest.h>
+#endif
+
 template <typename T>
 static uint16_t read16(Emu& ctx, const uint16_t addr, T setter)
 {
@@ -188,3 +192,85 @@ void Emu::setSP(const uint16_t sp)
 {
     setRegister16(Register16::SP, sp);
 }
+
+#ifdef BUILD_TESTING
+CLANG_DISABLE_WARNING_PUSH("-Wglobal-constructors")
+TEST(Emu, Registers)
+{
+    Emu ctx;
+    ctx.reset();
+
+    for (byte regVal = underlying(Register::A); regVal < underlying(Register::COUNT); ++regVal)
+    {
+        const auto reg = static_cast<Register>(regVal);
+        ctx.setRegister(reg, 0xFF);
+        ASSERT_EQ(ctx.getRegister(reg), reg == Register::F ? 0xF0 : 0xFF);
+
+        ctx.setRegister(reg, 0x00);
+        ASSERT_EQ(ctx.getRegister(reg), 0x00);
+    }
+
+    const auto checkReg16 = [&](const Register16 reg, const Register hi, const Register lo)
+    {
+        ctx.setRegister16(reg, 0xFEED);
+        ASSERT_EQ(ctx.getRegister16(reg), reg == Register16::AF ? 0xFEE0 : 0xFEED);
+        ASSERT_EQ(ctx.getRegister(hi), 0xFE);
+        ASSERT_EQ(ctx.getRegister(lo), lo == Register::F ? 0xE0 : 0xED);
+
+        ctx.setRegister16(reg, 0x1234);
+        ASSERT_EQ(ctx.getRegister16(reg), reg == Register16::AF ? 0x1230 : 0x1234);
+        ASSERT_EQ(ctx.getRegister(hi), 0x12);
+        ASSERT_EQ(ctx.getRegister(lo), lo == Register::F ? 0x30 : 0x34);
+    };
+
+    checkReg16(Register16::AF, Register::A, Register::F);
+    checkReg16(Register16::BC, Register::B, Register::C);
+    checkReg16(Register16::DE, Register::D, Register::E);
+    checkReg16(Register16::HL, Register::H, Register::L);
+    checkReg16(Register16::SP, Register::SP_HI, Register::SP_LO);
+}
+
+TEST(Emu, Flags)
+{
+    Emu ctx;
+    ctx.reset();
+
+    ctx.setRegister(Register::F, 0xFF);
+    ASSERT_EQ(ctx.getRegister(Register::F), 0xF0);
+    ASSERT_TRUE(ctx.getFlag(Flag::Z));
+    ASSERT_TRUE(ctx.getFlag(Flag::N));
+    ASSERT_TRUE(ctx.getFlag(Flag::H));
+    ASSERT_TRUE(ctx.getFlag(Flag::C));
+
+    ctx.setRegister(Register::F, 0);
+    ASSERT_EQ(ctx.getRegister(Register::F), 0);
+    ASSERT_FALSE(ctx.getFlag(Flag::Z));
+    ASSERT_FALSE(ctx.getFlag(Flag::N));
+    ASSERT_FALSE(ctx.getFlag(Flag::H));
+    ASSERT_FALSE(ctx.getFlag(Flag::C));
+
+    ASSERT_FALSE(ctx.getFlag(Flag::Z));
+    ctx.setFlag(Flag::Z, true);
+    ASSERT_TRUE(ctx.getFlag(Flag::Z));
+    ASSERT_EQ(ctx.getRegister(Register::F), 0b1000'0000);
+
+    ctx.setRegister(Register::F, 0);
+    ASSERT_FALSE(ctx.getFlag(Flag::N));
+    ctx.setFlag(Flag::N, true);
+    ASSERT_TRUE(ctx.getFlag(Flag::N));
+    ASSERT_EQ(ctx.getRegister(Register::F), 0b0100'0000);
+
+    ctx.setRegister(Register::F, 0);
+    ASSERT_FALSE(ctx.getFlag(Flag::H));
+    ctx.setFlag(Flag::H, true);
+    ASSERT_TRUE(ctx.getFlag(Flag::H));
+    ASSERT_EQ(ctx.getRegister(Register::F), 0b0010'0000);
+
+    ctx.setRegister(Register::F, 0);
+    ASSERT_FALSE(ctx.getFlag(Flag::C));
+    ctx.setFlag(Flag::C, true);
+    ASSERT_TRUE(ctx.getFlag(Flag::C));
+    ASSERT_EQ(ctx.getRegister(Register::F), 0b0001'0000);
+}
+CLANG_DISABLE_WARNING_POP
+#endif

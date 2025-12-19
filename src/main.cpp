@@ -1,3 +1,4 @@
+#ifndef BUILD_TESTING
 #if defined(_DEBUG) && defined(_MSC_VER)
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -55,3 +56,4 @@ int main(const int argc, const char** argv)
     CloseWindow();
     return 0;
 }
+#endif
