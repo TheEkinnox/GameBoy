@@ -273,7 +273,7 @@ void drawUI(const Emu& ctx)
         drawEmuWindow(ctx);
         drawMenuBar();
 
-#if DEBUG
+#ifdef DEBUG
         ImGui::ShowDemoWindow();
 #endif
     }
