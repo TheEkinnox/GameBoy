@@ -194,7 +194,7 @@ void Emu::setSP(const uint16_t sp)
 }
 
 #ifdef BUILD_TESTING
-CLANG_DISABLE_WARNING_PUSH("-Wglobal-constructors")
+CLANG_GCC_DISABLE_WARNING_PUSH("-Wglobal-constructors")
 TEST(Emu, Registers)
 {
     Emu ctx;
@@ -272,5 +272,5 @@ TEST(Emu, Flags)
     ASSERT_TRUE(ctx.getFlag(Flag::C));
     ASSERT_EQ(ctx.getRegister(Register::F), 0b0001'0000);
 }
-CLANG_DISABLE_WARNING_POP
+CLANG_GCC_DISABLE_WARNING_POP
 #endif
