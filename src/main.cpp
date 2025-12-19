@@ -2,9 +2,8 @@
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #endif
-#include <cstdio>
 
-#include "raylib.h"
+#include "emu.h"
 #include "gui.h"
 
 int main(const int argc, const char** argv)
@@ -15,7 +14,13 @@ int main(const int argc, const char** argv)
 
     ChangeDirectory(GetApplicationDirectory());
 
-    // TODO: Init emulator
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(800, 600, "nx_gbc");
+    SetTargetFPS(60);
+    SetExitKey(0);
+
+    Emu emu;
+    emu.init();
 
     if (argc > 1)
     {
@@ -23,16 +28,11 @@ int main(const int argc, const char** argv)
         printf("TODO: load ROM @ \"%s\"\n", argv[1]);
     }
 
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(800, 600, "nx_gbc");
-    SetTargetFPS(60);
-
     initUI(true);
 
     while (!shouldClose())
     {
-        // TODO: run emulation frame
-        // emu.frame();
+        emu.frame();
 
         BeginDrawing();
         {
@@ -51,6 +51,7 @@ int main(const int argc, const char** argv)
     }
 
     shutdownUI();
+    emu.shutdown();
     CloseWindow();
     return 0;
 }

@@ -1,10 +1,14 @@
 #include "gui.h"
 
+#include "macros.h"
+
 #include <algorithm>
 #include <cstdio>
 
-#include "rlImGui.h"
-#include "rlImGuiColors.h"
+NO_WARNINGS_PUSH
+#include <rlImGui.h>
+#include <rlImGuiColors.h>
+NO_WARNINGS_POP
 
 static struct
 {
