@@ -1,9 +1,11 @@
 #pragma once
+#include "macros.h"
+
 #include <climits>
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
-#include "macros.h"
+#include <utility>
 
 using byte  = uint8_t;
 using sbyte = int8_t;

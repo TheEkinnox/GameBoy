@@ -1,6 +1,6 @@
 #ifdef BUILD_TESTING
 #include "emu.h"
-CLANG_GCC_DISABLE_WARNING_PUSH("-Wglobal-constructors")
+CLANG_IGNORE_WARNING_PUSH("-Wglobal-constructors")
 
 #include <fstream>
 
@@ -144,7 +144,7 @@ TEST_P(OpcodeTests, SingleStep)
         for (const auto& [addr, val] : initialState.ram)
         {
             ASSERT_TRUE(mmu.writeByte(addr, val));
-            ASSERT_EQ(mmu.readByte(addr), val) << "addr = " << std::format("0x{:04x}", addr);
+            ASSERT_EQ(mmu.readByte(addr), val) << "addr = 0x" << std::hex << addr;
         }
 
         ctx.frame();
@@ -162,7 +162,7 @@ TEST_P(OpcodeTests, SingleStep)
 
         for (const auto& [addr, val] : finalState.ram)
         {
-            EXPECT_EQ(mmu.readByte(addr), val) << "addr = " << std::format("0x{:04x}", addr);
+            EXPECT_EQ(mmu.readByte(addr), val) << "addr = 0x" << std::hex << addr;
         }
     }
 }
@@ -173,5 +173,5 @@ int main(int argc, char** argv)
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
-CLANG_GCC_DISABLE_WARNING_POP
+CLANG_IGNORE_WARNING_POP
 #endif

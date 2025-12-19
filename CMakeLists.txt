@@ -70,6 +70,7 @@ else()
             -Wno-covered-switch-default
             -Wno-gnu-zero-variadic-macro-arguments
             -Wno-unsafe-buffer-usage
+            -Wno-unknown-pragmas
     )
 
     add_compile_options(-Wall -Wextra -Wpedantic -Werror ${IGNORED_WARNINGS})
