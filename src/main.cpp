@@ -38,15 +38,7 @@ int main(const int argc, const char** argv)
         BeginDrawing();
         {
             clearScreen();
-            // TODO: draw emu render target
-            // if (IsRenderTextureValid(emu.renderTarget))
-            // {
-            //     const Texture2D& texture = emu.renderTarget.texture;
-            //     const Rectangle texRect{ 0, 0, static_cast<float>(texture.width), static_cast<float>(-texture.height) };
-            //     const Rectangle scrRect{ 0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()) };
-            //     DrawTexturePro(texture, texRect, scrRect, { 0, 0 }, 0, WHITE);
-            // }
-            drawUI();
+            drawUI(emu);
         }
         EndDrawing();
     }
