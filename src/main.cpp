@@ -17,6 +17,7 @@ int main(const int argc, const char** argv)
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(800, 600, "nx_gbc");
+    SetWindowMinSize(800, 600);
     SetTargetFPS(Emu::FRAME_RATE);
     SetExitKey(0);
 
