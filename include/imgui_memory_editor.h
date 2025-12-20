@@ -63,7 +63,8 @@
 
 #include <cstdio>       // sprintf, scanf // [CUSTOM_MOD] replace stdio.h with cstdio
 #include <cstdint>      // uint8_t, etc. // [CUSTOM_MOD] replace stdint.h with cstdint
-#include "imgui.h"      // [CUSTOM_MOD] Add imgui.h include to avoid making this include order-dependent
+#include <cmath>        // [CUSTOM_MOD] Include cmath for floorf
+#include "imgui.h"      // [CUSTOM_MOD] Include imgui.h to avoid making this include order-dependent
 
 #if defined(_MSC_VER) && !defined(snprintf)
 #define ImSnprintf  _snprintf
