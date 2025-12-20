@@ -51,12 +51,11 @@ void Emu::init()
 
 void Emu::reset()
 {
+    stop();
     m_mmu.reset();
     memset(m_registers, 0, sizeof(m_registers));
     setSP(ADDRESSES.hram.end); // NOTE: This is technically handled by the boot rom
     m_pc = 0;
-
-    setContextFlag(ContextFlag::RUNNING, true);
 }
 
 void Emu::step()
