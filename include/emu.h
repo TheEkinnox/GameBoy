@@ -131,12 +131,15 @@ class Emu
 {
 public:
     static constexpr uint32_t CLOCK_SPEED = 4 * MB;
+    static constexpr byte FRAME_RATE      = 60;
     static constexpr byte SCREEN_WIDTH    = 160;
     static constexpr byte SCREEN_HEIGHT   = 144;
 
     void init();
     void reset();
+    void step();
     void frame();
+    bool isRunning() const;
     void stop();
     void shutdown();
 

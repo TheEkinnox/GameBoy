@@ -17,7 +17,7 @@ int main(const int argc, const char** argv)
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(800, 600, "nx_gbc");
-    SetTargetFPS(60);
+    SetTargetFPS(Emu::FRAME_RATE);
     SetExitKey(0);
 
     Emu emu;
@@ -33,7 +33,8 @@ int main(const int argc, const char** argv)
 
     while (!shouldClose())
     {
-        emu.frame();
+        if (emu.isRunning())
+            emu.frame();
 
         BeginDrawing();
         {

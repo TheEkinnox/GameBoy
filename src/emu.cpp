@@ -59,11 +59,8 @@ void Emu::reset()
     setContextFlag(ContextFlag::RUNNING, true);
 }
 
-void Emu::frame()
+void Emu::step()
 {
-    if (!getContextFlag(ContextFlag::RUNNING))
-        return;
-
     size_t cycleCount         = m_mmu.getCycle();
     const byte expectedCycles = processOpcode(*this);
     cycleCount                = m_mmu.getCycle() - cycleCount;
@@ -73,6 +70,22 @@ void Emu::frame()
         fprintf(stderr, "M-Cycles mismatch (%zu/%u)\n", cycleCount, expectedCycles);
         stop();
     }
+}
+
+void Emu::frame()
+{
+    constexpr uint32_t cyclesPerFrame = CLOCK_SPEED / FRAME_RATE;
+    for (size_t cycle = 0; cycle < cyclesPerFrame;)
+    {
+        const size_t startCount = m_mmu.getCycle();
+        step();
+        cycle += m_mmu.getCycle() - startCount;
+    }
+}
+
+bool Emu::isRunning() const
+{
+    return getContextFlag(ContextFlag::RUNNING);
 }
 
 void Emu::stop()
@@ -160,6 +173,7 @@ void Emu::setFlag(const Flag flag, const bool val)
     else
         flags &= ~underlying(flag);
 }
+
 bool Emu::getContextFlag(const ContextFlag flag) const
 {
     return m_contextFlags & underlying(flag);

@@ -147,7 +147,7 @@ TEST_P(OpcodeTests, SingleStep)
             ASSERT_EQ(mmu.readByte(addr), val) << "addr = 0x" << std::hex << addr;
         }
 
-        ctx.frame();
+        ctx.step();
 
         // Validate emu state
         EXPECT_EQ(ctx.getPC(), finalState.pc);
