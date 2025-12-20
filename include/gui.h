@@ -1,7 +1,7 @@
 #pragma once
 
-void initUI(bool useDarkMode);
+void initUI(class Emu& ctx);
 void clearScreen();
-void drawUI(const class Emu& ctx);
+void drawUI();
 bool shouldClose();
 void shutdownUI();

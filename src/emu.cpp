@@ -93,6 +93,11 @@ void Emu::stop()
     setContextFlag(ContextFlag::RUNNING, false);
 }
 
+void Emu::resume()
+{
+    setContextFlag(ContextFlag::RUNNING, true);
+}
+
 void Emu::shutdown()
 {
     UnloadRenderTexture(m_renderTarget);

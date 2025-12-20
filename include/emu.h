@@ -141,6 +141,7 @@ public:
     void frame();
     bool isRunning() const;
     void stop();
+    void resume();
     void shutdown();
 
     RenderTexture2D getRenderTarget() const;

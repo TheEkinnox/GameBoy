@@ -12,6 +12,10 @@ NO_WARNINGS_POP
 
 static struct
 {
+    // Emu
+    Emu* ctx     = nullptr;
+
+    // App
     bool shouldClose = false;
     bool useDarkMode = true;
 } s_uiGlob;
@@ -178,11 +182,12 @@ static void setCustomStyle(const bool darkMode)
     ImGui::GetStyle() = style; // Setting this at the end to make sure ALL values are overwritten
 }
 
-void initUI(const bool useDarkMode)
+void initUI(Emu& ctx)
 {
-    s_uiGlob.useDarkMode = useDarkMode;
+    s_uiGlob.ctx = &ctx;
+
     rlImGuiBeginInitImGui();
-    setCustomStyle(useDarkMode);
+    setCustomStyle(s_uiGlob.useDarkMode);
     rlImGuiEndInitImGui();
 }
 
@@ -196,10 +201,45 @@ static bool isAnyCtrlDown()
     return IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
 }
 
+static bool isAnyShiftDown()
+{
+    return IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+}
+
 static void showLoadCartDialog()
 {
     // TODO: Load cartridge
     fputs("Loading cartridge\n", stdout);
+}
+
+static void togglePlay()
+{
+    Emu& ctx = *s_uiGlob.ctx;
+    if (ctx.isRunning())
+        ctx.stop();
+    else
+        ctx.resume();
+}
+
+static void toggleFullscreen()
+{
+    // Init those to the current value on first call - Handles the edge-case where we start in fullscreen
+    static int cachedWidth  = GetScreenWidth();
+    static int cachedHeight = GetScreenHeight();
+
+    if (IsWindowFullscreen())
+    {
+        SetWindowSize(cachedWidth, cachedHeight);
+    }
+    else
+    {
+        cachedWidth       = GetScreenWidth();
+        cachedHeight      = GetScreenHeight();
+        const int display = GetCurrentMonitor();
+        SetWindowSize(GetMonitorWidth(display), GetMonitorHeight(display));
+    }
+
+    ToggleFullscreen();
 }
 
 static void handleShortcuts()
@@ -207,11 +247,30 @@ static void handleShortcuts()
     if (ImGui::GetIO().WantCaptureKeyboard)
         return;
 
-    if (isAnyCtrlDown() && IsKeyPressed(KEY_O))
-        showLoadCartDialog();
+    if (isAnyCtrlDown())
+    {
+        if (IsKeyPressed(KEY_O))
+            showLoadCartDialog();
+    }
+    else if (isAnyShiftDown())
+    {
+        if (IsKeyPressed(KEY_P))
+            togglePlay();
+        else if (IsKeyPressed(KEY_S))
+            s_uiGlob.ctx->step();
+        else if (IsKeyPressed(KEY_F))
+            s_uiGlob.ctx->frame();
+        else if (IsKeyPressed(KEY_R))
+            s_uiGlob.ctx->reset();
+    }
+    else
+    {
+        if (IsKeyPressed(KEY_F11))
+            toggleFullscreen();
+    }
 }
 
-static void drawEmuWindow(const Emu& ctx)
+static void drawMainWindow()
 {
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
@@ -234,12 +293,34 @@ static void drawFileMenu()
         return;
 
     if (ImGui::MenuItem("Load Cartridge", "Ctrl+O"))
-    {
         showLoadCartDialog();
-    }
 
     if (ImGui::MenuItem("Exit", "Alt+F4"))
         s_uiGlob.shouldClose = true;
+
+    ImGui::EndMenu();
+}
+
+static void drawEmulationMenu()
+{
+    if (!ImGui::BeginMenu("Emulation"))
+        return;
+
+    Emu& ctx             = *s_uiGlob.ctx;
+    const bool isRunning = ctx.isRunning();
+    if (ImGui::MenuItem(isRunning ? "Pause" : "Play", "Shift+P"))
+        togglePlay();
+
+    ImGui::BeginDisabled(isRunning);
+    if (ImGui::MenuItem("Step", "Shift+S"))
+        ctx.step();
+
+    if (ImGui::MenuItem("Frame", "Shift+F"))
+        ctx.frame();
+    ImGui::EndDisabled();
+
+    if (ImGui::MenuItem("Reset", "Shift+R"))
+        ctx.reset();
 
     ImGui::EndMenu();
 }
@@ -249,8 +330,11 @@ static void drawDisplayMenu()
     if (!ImGui::BeginMenu("Display"))
         return;
 
-    if (ImGui::MenuItem("Dark Mode", "", &s_uiGlob.useDarkMode))
+    if (ImGui::MenuItem("Dark Mode", nullptr, &s_uiGlob.useDarkMode))
         setCustomStyle(s_uiGlob.useDarkMode);
+
+    if (ImGui::MenuItem("Fullscreen", "F11", IsWindowFullscreen()))
+        toggleFullscreen();
 
     ImGui::EndMenu();
 }
@@ -260,17 +344,18 @@ static void drawMenuBar()
     ImGui::BeginMainMenuBar();
     {
         drawFileMenu();
+        drawEmulationMenu();
         drawDisplayMenu();
     }
     ImGui::EndMainMenuBar();
 }
 
-void drawUI(const Emu& ctx)
+void drawUI()
 {
     rlImGuiBegin();
     {
         handleShortcuts();
-        drawEmuWindow(ctx);
+        drawMainWindow();
         drawMenuBar();
 
 #ifdef DEBUG
@@ -285,8 +370,8 @@ bool shouldClose()
     return s_uiGlob.shouldClose || WindowShouldClose();
 }
 
-
 void shutdownUI()
 {
     rlImGuiShutdown();
+    s_uiGlob.ctx = nullptr;
 }

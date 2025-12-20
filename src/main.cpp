@@ -29,7 +29,7 @@ int main(const int argc, const char** argv)
         printf("TODO: load ROM @ \"%s\"\n", argv[1]);
     }
 
-    initUI(true);
+    initUI(emu);
 
     while (!shouldClose())
     {
@@ -39,7 +39,7 @@ int main(const int argc, const char** argv)
         BeginDrawing();
         {
             clearScreen();
-            drawUI(emu);
+            drawUI();
         }
         EndDrawing();
     }
