@@ -73,13 +73,13 @@ void Emu::step()
 
 void Emu::frame()
 {
-    constexpr uint32_t cyclesPerFrame = CLOCK_SPEED / FRAME_RATE;
-    for (size_t cycle = 0; cycle < cyclesPerFrame;)
+    constexpr uint32_t cyclesPerFrame = FRAME_RATE > 0 ? CLOCK_SPEED / FRAME_RATE : 0;
+    const size_t startCount = m_mmu.getCycle();
+
+    do
     {
-        const size_t startCount = m_mmu.getCycle();
         step();
-        cycle += m_mmu.getCycle() - startCount;
-    }
+    } while (m_mmu.getCycle() - startCount < cyclesPerFrame);
 }
 
 bool Emu::isRunning() const
