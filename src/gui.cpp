@@ -6,13 +6,16 @@
 #include <cstdio>
 
 NO_WARNINGS_PUSH
+#include <imgui_memory_editor.h>
 #include <rlImGui.h>
 #include <rlImGuiColors.h>
 NO_WARNINGS_POP
 
+CLANG_IGNORE_WARNING_PUSH("-Wglobal-constructors")
 static struct
 {
     // Emu
+    MemoryEditor memoryEditor{};
     Emu* ctx       = nullptr;
     bool showCPU   = IS_DEBUG;
     bool showStats = false;
@@ -21,6 +24,7 @@ static struct
     bool shouldClose = false;
     bool useDarkMode = true;
 } s_uiGlob;
+CLANG_IGNORE_WARNING_POP
 
 static constexpr ImVec4 setAlpha(ImVec4 color, const float alpha)
 {
@@ -184,9 +188,38 @@ static void setCustomStyle(const bool darkMode)
     ImGui::GetStyle() = style; // Setting this at the end to make sure ALL values are overwritten
 }
 
+static ImU8 memReadFn(const ImU8*, const size_t addr, void*)
+{
+    return s_uiGlob.ctx->getMMU().peekByte(static_cast<uint16_t>(addr));
+}
+
+static ImU32 memBgColorFn(const ImU8*, const size_t addr, void*)
+{
+    if (addr == s_uiGlob.ctx->getPC())
+        return ImGui::ColorConvertFloat4ToU32(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? DARKPURPLE : PURPLE));
+
+    if (addr == s_uiGlob.ctx->getSP())
+        return ImGui::ColorConvertFloat4ToU32(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? MAROON : BLUE));
+
+    if (addr > s_uiGlob.ctx->getSP() && addr <= ADDRESSES.hram.end)
+        return ImGui::ColorConvertFloat4ToU32(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? DARKBROWN : SKYBLUE));
+
+    return 0;
+}
+
 void initUI(Emu& ctx)
 {
     s_uiGlob.ctx = &ctx;
+
+    s_uiGlob.memoryEditor.Open               = IS_DEBUG;
+    s_uiGlob.memoryEditor.ReadOnly           = true;
+    s_uiGlob.memoryEditor.Cols               = 8;
+    s_uiGlob.memoryEditor.OptShowDataPreview = true;
+    s_uiGlob.memoryEditor.OptShowAscii       = false;
+    s_uiGlob.memoryEditor.OptUpperCaseHex    = false;
+    s_uiGlob.memoryEditor.ReadFn             = memReadFn;
+    s_uiGlob.memoryEditor.BgColorFn          = memBgColorFn;
+    s_uiGlob.memoryEditor.PreviewDataType    = ImGuiDataType_U16;
 
     rlImGuiBeginInitImGui();
     setCustomStyle(s_uiGlob.useDarkMode);
@@ -274,6 +307,8 @@ static void handleShortcuts()
     {
         if (IsKeyPressed(KEY_C))
             toggle(s_uiGlob.showCPU);
+        else if (IsKeyPressed(KEY_M))
+            toggle(s_uiGlob.memoryEditor.Open);
         else if (IsKeyPressed(KEY_S))
             toggle(s_uiGlob.showStats);
     }
@@ -387,6 +422,20 @@ static void drawCPUView()
     ImGui::EndChild();
 }
 
+static void drawMemoryView()
+{
+    if (!s_uiGlob.memoryEditor.Open)
+        return;
+
+    constexpr ImGuiChildFlags childFlags   = ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeX;
+    constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar;
+    ImGui::BeginChild("Memory", ImVec2(0, 0), childFlags, windowFlags);
+    {
+        s_uiGlob.memoryEditor.DrawContents(nullptr, ADDRESSES.interruptsRegister + 1);
+    }
+    ImGui::EndChild();
+}
+
 static void drawStatsOverlay()
 {
     if (!s_uiGlob.showStats)
@@ -462,7 +511,13 @@ static void drawMainWindow()
     ImGui::Begin("Main", nullptr, flags);
     ImGui::PopStyleVar(1);
     {
-        drawCPUView();
+        ImGui::BeginChild("CPU_Mem", ImVec2(0, 0), ImGuiChildFlags_AutoResizeX);
+        {
+            drawCPUView();
+            drawMemoryView();
+        }
+        ImGui::EndChild();
+
         ImGui::SameLine();
         drawEmuView();
     }
@@ -527,6 +582,7 @@ static void drawDebugMenu()
         return;
 
     ImGui::MenuItem("CPU", "Alt+C", &s_uiGlob.showCPU);
+    ImGui::MenuItem("Memory", "Alt+M", &s_uiGlob.memoryEditor.Open);
     ImGui::MenuItem("Stats", "Alt+S", &s_uiGlob.showStats);
 
     ImGui::EndMenu();

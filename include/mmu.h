@@ -50,6 +50,7 @@ public:
 
     bool isBootMode() const;
 
+    byte peekByte(uint16_t addr) const;
     byte readByte(uint16_t addr);
     bool writeByte(uint16_t addr, byte data);
 

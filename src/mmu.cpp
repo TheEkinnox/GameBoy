@@ -31,10 +31,9 @@ bool MMU::isBootMode() const
     return m_memory[ADDRESSES.bootMode] == 0;
 }
 
-byte MMU::readByte(const uint16_t addr)
+byte MMU::peekByte(const uint16_t addr) const
 {
     // TODO: MMU::readByte
-    ON_SCOPE_EXIT([this] { addCycle(); });
 
 #ifndef BUILD_TESTING // Unit tests assume no boot-rom and a non-mapped 64KB block of memory
     if (ADDRESSES.unusable.contains(addr))
@@ -45,6 +44,12 @@ byte MMU::readByte(const uint16_t addr)
 #endif
 
     return m_memory[addr];
+}
+
+byte MMU::readByte(const uint16_t addr)
+{
+    ON_SCOPE_EXIT([this] { addCycle(); });
+    return peekByte(addr);
 }
 
 bool MMU::writeByte(const uint16_t addr, const byte data)
