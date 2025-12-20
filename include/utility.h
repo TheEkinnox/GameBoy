@@ -15,6 +15,12 @@ inline constexpr uint32_t MB = KB << 10;
 
 inline constexpr size_t MAX_OSPATH = 256;
 
+#ifdef DEBUG
+inline constexpr bool IS_DEBUG = true;
+#else
+inline constexpr bool IS_DEBUG = false;
+#endif
+
 template <typename T>
 class [[nodiscard]] ScopeExitRunner
 {
@@ -42,6 +48,11 @@ ScopeExitRunner<T> makeScopeExitRunner(T&& func)
 }
 
 #define ON_SCOPE_EXIT(func) const auto CAT(scope_, __LINE__) = makeScopeExitRunner(func)
+
+constexpr bool toggle(bool& b)
+{
+    return b = !b;
+}
 
 template <typename T>
 constexpr T setBit(const T out, const byte offset, const bool value)

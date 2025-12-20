@@ -13,7 +13,9 @@ NO_WARNINGS_POP
 static struct
 {
     // Emu
-    Emu* ctx     = nullptr;
+    Emu* ctx       = nullptr;
+    bool showCPU   = IS_DEBUG;
+    bool showStats = false;
 
     // App
     bool shouldClose = false;
@@ -206,6 +208,11 @@ static bool isAnyShiftDown()
     return IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
 }
 
+static bool isAnyAltDown()
+{
+    return IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT);
+}
+
 static void showLoadCartDialog()
 {
     // TODO: Load cartridge
@@ -263,6 +270,13 @@ static void handleShortcuts()
         else if (IsKeyPressed(KEY_R))
             s_uiGlob.ctx->reset();
     }
+    else if (isAnyAltDown())
+    {
+        if (IsKeyPressed(KEY_C))
+            toggle(s_uiGlob.showCPU);
+        else if (IsKeyPressed(KEY_S))
+            toggle(s_uiGlob.showStats);
+    }
     else
     {
         if (IsKeyPressed(KEY_F11))
@@ -270,19 +284,187 @@ static void handleShortcuts()
     }
 }
 
+template <typename T>
+static void drawFlag(const T flag)
+    requires(std::is_same_v<T, Flag> || std::is_same_v<T, ContextFlag>)
+{
+    ImGui::PushID(underlying(flag));
+    {
+        bool flagVal;
+        if constexpr (std::is_same_v<T, Flag>)
+            flagVal = s_uiGlob.ctx->getFlag(flag);
+        else
+            flagVal = s_uiGlob.ctx->getContextFlag(flag);
+
+        ImGui::Text("%s:", to_string(flag));
+        ImGui::SameLine();
+        // ImGui::Checkbox("", &flagVal);
+        if (flagVal)
+            ImGui::TextColored(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? GREEN : DARKBLUE), "On");
+        else
+            ImGui::TextDisabled("Off");
+    }
+    ImGui::PopID();
+}
+
+static void drawHex16(const char* label, const uint16_t value)
+{
+    ImGui::PushID(label);
+    {
+        ImGui::Text("%s:", label);
+        ImGui::SameLine();
+        ImGui::TextDisabled("0x%04X", value);
+    }
+    ImGui::PopID();
+}
+
+static void drawCPUView()
+{
+    if (!s_uiGlob.showCPU)
+        return;
+
+    Emu& ctx                   = *s_uiGlob.ctx;
+    ImGuiChildFlags childFlags = ImGuiChildFlags_Borders;
+
+    if (s_uiGlob.memoryEditor.Open)
+        childFlags |= ImGuiChildFlags_AutoResizeY;
+    else
+        childFlags |= ImGuiChildFlags_AutoResizeX;
+
+    ImGui::BeginChild("CPU", ImVec2(0, 0), childFlags, ImGuiWindowFlags_NoInputs);
+    {
+        ImGui::SeparatorText("State");
+        ImGui::PushID("State");
+        {
+            ImGui::Text("M-Cycle:");
+            ImGui::SameLine();
+            ImGui::TextDisabled("%zu", ctx.getMMU().getCycle());
+
+            drawFlag(ContextFlag::RUNNING);
+
+            ImGui::SameLine();
+            drawFlag(ContextFlag::IME);
+        }
+        ImGui::PopID();
+
+        ImGui::SeparatorText("Registers");
+        ImGui::PushID("Registers");
+        {
+            ImGui::PushID("IR");
+            {
+                ImGui::Text("%s:", to_string(Register::IR));
+                ImGui::SameLine();
+                ImGui::TextDisabled("0x%02X", ctx.getRegister(Register::IR));
+            }
+            ImGui::PopID();
+
+            for (auto i = underlying(Register::A); i < underlying(Register::COUNT); i += 2)
+            {
+                const auto reg = static_cast<Register16>(i);
+                drawHex16(to_string(reg), ctx.getRegister16(reg));
+            }
+
+            drawHex16("PC", ctx.getPC());
+        }
+        ImGui::PopID();
+
+        ImGui::SeparatorText("Flags");
+        ImGui::PushID("Flags");
+        {
+            drawFlag(Flag::Z);
+
+            ImGui::SameLine();
+            drawFlag(Flag::N);
+
+            ImGui::SameLine();
+            drawFlag(Flag::H);
+
+            ImGui::SameLine();
+            drawFlag(Flag::C);
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndChild();
+}
+
+static void drawStatsOverlay()
+{
+    if (!s_uiGlob.showStats)
+        return;
+
+    // Adapted from Dear ImGui "Simple Overlay" Example
+    static int location          = 0;
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
+    if (location >= 0)
+    {
+        const ImVec2 padding    = ImGui::GetStyle().WindowPadding;
+        const ImVec2 windowPos  = ImGui::GetWindowPos();
+        const ImVec2 windowSize = ImGui::GetWindowSize();
+        ImVec2 pos, pivot;
+        pos.x   = (location & 1) ? (windowPos.x + windowSize.x - padding.x) : (windowPos.x + padding.x);
+        pos.y   = (location & 2) ? (windowPos.y + windowSize.y - padding.y) : (windowPos.y + padding.y);
+        pivot.x = (location & 1) ? 1.0f : 0.0f;
+        pivot.y = (location & 2) ? 1.0f : 0.0f;
+        ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
+        windowFlags |= ImGuiWindowFlags_NoMove;
+    }
+
+    ImGui::Begin("Stats", nullptr, windowFlags);
+    {
+        ImGui::Text("Stats (right-click to move)");
+        ImGui::Separator();
+        ImGui::Text("Frame time: %.2fms (%d FPS)", static_cast<double>(GetFrameTime()) * 1000, GetFPS());
+
+        if (ImGui::BeginPopupContextWindow())
+        {
+            if (ImGui::MenuItem("Custom", nullptr, location == -1))
+                location = -1;
+            if (ImGui::MenuItem("Top-left", nullptr, location == 0))
+                location = 0;
+            if (ImGui::MenuItem("Top-right", nullptr, location == 1))
+                location = 1;
+            if (ImGui::MenuItem("Bottom-left", nullptr, location == 2))
+                location = 2;
+            if (ImGui::MenuItem("Bottom-right", nullptr, location == 3))
+                location = 3;
+            ImGui::EndPopup();
+        }
+    }
+    ImGui::End();
+}
+
+static void drawEmuView()
+{
+    const RenderTexture2D renderTarget = s_uiGlob.ctx->getRenderTarget();
+    if (!IsRenderTextureValid(renderTarget))
+        return;
+
+    const bool isChild                 = s_uiGlob.showCPU || s_uiGlob.memoryEditor.Open;
+    const ImGuiChildFlags childFlags   = isChild ? ImGuiChildFlags_Borders : ImGuiChildFlags_None;
+    const ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoScrollbar | (isChild ? ImGuiWindowFlags_None : ImGuiWindowFlags_NoBackground);
+    ImGui::BeginChild("Emu", ImVec2(0, 0), childFlags, windowFlags);
+    {
+        rlImGuiImageRenderTextureFit(&renderTarget, true);
+        drawStatsOverlay();
+    }
+    ImGui::EndChild();
+}
+
 static void drawMainWindow()
 {
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_MenuBar |
-        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground;
+    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus;
     ImGui::Begin("Main", nullptr, flags);
     ImGui::PopStyleVar(1);
     {
-        const RenderTexture2D renderTarget = ctx.getRenderTarget();
-        if (IsRenderTextureValid(renderTarget))
-            rlImGuiImageRenderTextureFit(&renderTarget, true);
+        drawCPUView();
+        ImGui::SameLine();
+        drawEmuView();
     }
     ImGui::End();
 }
@@ -339,6 +521,17 @@ static void drawDisplayMenu()
     ImGui::EndMenu();
 }
 
+static void drawDebugMenu()
+{
+    if (!ImGui::BeginMenu("Debug"))
+        return;
+
+    ImGui::MenuItem("CPU", "Alt+C", &s_uiGlob.showCPU);
+    ImGui::MenuItem("Stats", "Alt+S", &s_uiGlob.showStats);
+
+    ImGui::EndMenu();
+}
+
 static void drawMenuBar()
 {
     ImGui::BeginMainMenuBar();
@@ -346,6 +539,7 @@ static void drawMenuBar()
         drawFileMenu();
         drawEmulationMenu();
         drawDisplayMenu();
+        drawDebugMenu();
     }
     ImGui::EndMainMenuBar();
 }
