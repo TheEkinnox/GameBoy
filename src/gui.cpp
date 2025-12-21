@@ -261,6 +261,11 @@ static void togglePlay()
         ctx.resume();
 }
 
+static void toggleDarkMode()
+{
+    setCustomStyle(toggle(s_uiGlob.useDarkMode));
+}
+
 static void toggleFullscreen()
 {
     // Init those to the current value on first call - Handles the edge-case where we start in fullscreen
@@ -314,7 +319,9 @@ static void handleShortcuts()
     }
     else
     {
-        if (IsKeyPressed(KEY_F11))
+        if (IsKeyPressed(KEY_F10))
+            toggleDarkMode();
+        else if (IsKeyPressed(KEY_F11))
             toggleFullscreen();
     }
 }
@@ -567,8 +574,8 @@ static void drawDisplayMenu()
     if (!ImGui::BeginMenu("Display"))
         return;
 
-    if (ImGui::MenuItem("Dark Mode", nullptr, &s_uiGlob.useDarkMode))
-        setCustomStyle(s_uiGlob.useDarkMode);
+    if (ImGui::MenuItem("Dark Mode", "F10", s_uiGlob.useDarkMode))
+        toggleDarkMode();
 
     if (ImGui::MenuItem("Fullscreen", "F11", IsWindowFullscreen()))
         toggleFullscreen();
