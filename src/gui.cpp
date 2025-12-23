@@ -195,14 +195,16 @@ static ImU8 memReadFn(const ImU8*, const size_t addr, void*)
 
 static ImU32 memBgColorFn(const ImU8*, const size_t addr, void*)
 {
-    if (addr == s_uiGlob.ctx->getPC())
-        return ImGui::ColorConvertFloat4ToU32(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? DARKPURPLE : PURPLE));
+    Emu& ctx = *s_uiGlob.ctx;
 
-    if (addr == s_uiGlob.ctx->getSP())
-        return ImGui::ColorConvertFloat4ToU32(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? MAROON : BLUE));
+    if (addr == ctx.getPC())
+        return s_uiGlob.useDarkMode ? 0xFF7E1F70 : 0xFFFFADFE;
 
-    if (addr > s_uiGlob.ctx->getSP() && addr <= ADDRESSES.hram.end)
-        return ImGui::ColorConvertFloat4ToU32(rlImGuiColors::Convert(s_uiGlob.useDarkMode ? DARKBROWN : SKYBLUE));
+    if (addr == ctx.getSP())
+        return s_uiGlob.useDarkMode ? 0xFF101D52 : 0xFF9EABE0;
+
+    if (addr > ctx.getSP() && addr <= ADDRESSES.hram.end)
+        return s_uiGlob.useDarkMode ? 0xFF2F3F4C : 0xFFBDCDDA;
 
     return 0;
 }
