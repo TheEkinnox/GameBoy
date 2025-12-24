@@ -17,6 +17,7 @@ static constexpr byte DMG_BOOT[] = {
     0x3c, 0x42, 0xb9, 0xa5, 0xb9, 0xa5, 0x42, 0x3c, 0x21, 0x04, 0x01, 0x11, 0xa8, 0x00, 0x1a, 0x13, 0xbe, 0x20, 0xfe, 0x23, 0x7d, 0xfe, 0x34, 0x20,
     0xf5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xfb, 0x86, 0x20, 0xfe, 0x3e, 0x01, 0xe0, 0x50
 };
+sassert(sizeof(DMG_BOOT) == ADDRESSES.bootRom.size());
 #endif
 // clang-format on
 
@@ -39,7 +40,7 @@ byte MMU::peekByte(const uint16_t addr) const
     if (ADDRESSES.unusable.contains(addr))
         return 0xff;
 
-    if (isBootMode() && addr < sizeof(DMG_BOOT))
+    if (isBootMode() && addr <= ADDRESSES.bootRom.end)
         return DMG_BOOT[addr];
 #endif
 
@@ -58,8 +59,15 @@ bool MMU::writeByte(const uint16_t addr, const byte data)
     ON_SCOPE_EXIT([this] { addCycle(); });
 
 #ifndef BUILD_TESTING // Unit tests assume no boot-rom and a non-mapped 64KB block of memory
-    if (isBootMode() && addr < sizeof(DMG_BOOT))
-        return false;
+    if (isBootMode())
+    {
+        if (addr < sizeof(DMG_BOOT))
+            return false;
+    }
+    else if (addr == ADDRESSES.bootMode)
+    {
+        return false; // Once disabled, boot mode can only be re-enabled by resetting
+    }
 
     if (ADDRESSES.unusable.contains(addr))
         return false;

@@ -21,10 +21,11 @@ struct AddressRange
 
 inline constexpr struct
 {
-    AddressRange bank0 = { 0x0000, 0x3FFF };
-    uint16_t mbc       = 0x0147;
-    uint16_t romSize   = 0x0148;
-    uint16_t ramSize   = 0x0149;
+    AddressRange bootRom = { 0x0000, 0x00FF };
+    AddressRange bank0   = { 0x0000, 0x3FFF };
+    uint16_t mbc         = 0x0147;
+    uint16_t romSize     = 0x0148;
+    uint16_t ramSize     = 0x0149;
 
     AddressRange bankN    = { 0x4000, 0x7FFF };
     AddressRange vram     = { 0x8000, 0x9FFF };
