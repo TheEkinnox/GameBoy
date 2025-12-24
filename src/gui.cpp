@@ -203,6 +203,9 @@ static ImU32 memBgColorFn(const ImU8*, const size_t addr, void*)
     if (addr == ctx.getSP())
         return s_uiGlob.useDarkMode ? 0xFF101D52 : 0xFF9EABE0;
 
+    if (ctx.getMMU().isBootMode() && addr <= ADDRESSES.bootRom.end)
+        return s_uiGlob.useDarkMode ? 0xFF3A5656 : 0xFFC8E4E4;
+
     if (addr > ctx.getSP() && addr <= ADDRESSES.hram.end)
         return s_uiGlob.useDarkMode ? 0xFF2F3F4C : 0xFFBDCDDA;
 
